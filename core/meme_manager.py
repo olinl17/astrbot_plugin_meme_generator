@@ -276,8 +276,10 @@ class MemeManager:
 
         return image
 
-    async def generate_random_meme(self, event: AstrMessageEvent) -> Optional[bytes]:
-        """Generate a random meme whose parameters a poke can supply."""
+    async def generate_random_meme(
+        self, event: AstrMessageEvent
+    ) -> Optional[tuple[bytes, str]]:
+        """Generate a random poke meme and return its image plus a usable keyword."""
         user_id = event.get_sender_id()
         if self.cooldown_manager.is_user_in_cooldown(user_id):
             return None
@@ -311,7 +313,11 @@ class MemeManager:
                 if compressed:
                     image = compressed
                 self.cooldown_manager.record_user_use(user_id)
-                return image
+                # Prefer the first public keyword: it is the form users can send
+                # directly, unlike the internal ``meme.key`` identifier.
+                keywords = list(meme.info.keywords)
+                command = keywords[0] if keywords else meme.key
+                return image, command
             except Exception as exc:
                 logger.debug("戳一戳随机模板 %s 生成失败: %s", meme.key, exc)
 

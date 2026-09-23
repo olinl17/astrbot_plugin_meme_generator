@@ -4,7 +4,7 @@
 
 # AstrBot 表情包生成插件
 
-**v2.3.2-poke · 关键词触发 · QQ 头像 · 戳一戳随机表情**
+**v2.3.2-poke.1 · 关键词触发 · QQ 头像 · 戳一戳随机表情**
 
 基于 [meme-generator-rs](https://github.com/MemeCrafters/meme-generator-rs) 的 AstrBot 表情包插件。
 
@@ -147,7 +147,7 @@ fc-cache -fv
 | `enable_avatar_cache` | `bool` | `true` | 是否缓存 QQ 头像 |
 | `cache_expire_hours` | `int` | `24` | 头像缓存有效期，范围 1–168 小时 |
 | `disabled_templates` | `list` | `[]` | 被管理员禁用的模板列表 |
-| `enable_poke_response` | `bool` | `false` | 戳一戳机器人时随机回复一张表情，并沿用用户生成冷却时间 |
+| `enable_poke_response` | `bool` | `false` | 戳一戳机器人时随机回复一张表情，并附上“这是指令：关键词”；沿用用户生成冷却时间 |
 | `poke_response_any_target` | `bool` | `false` | 开启后任意戳一戳都回复表情，包括群成员互相戳一戳 |
 
 ## 外部模板

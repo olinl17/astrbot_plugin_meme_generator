@@ -311,9 +311,15 @@ class GenerationHandler:
     async def handle_poke_response(self, event: AstrMessageEvent):
         """Reply to a poke with one random meme when the feature is enabled."""
         try:
-            image = await self.meme_manager.generate_random_meme(event)
-            if image:
-                yield event.chain_result([Comp.Image.fromBytes(image)])
+            generated = await self.meme_manager.generate_random_meme(event)
+            if generated:
+                image, keyword = generated
+                prefix = self.meme_manager.config.trigger_prefix
+                command = f"{prefix}{keyword}"
+                yield event.chain_result([
+                    Comp.Plain(f"这是指令：{command}\n"),
+                    Comp.Image.fromBytes(image),
+                ])
         except ResourceNotReadyError as exc:
             yield event.plain_result(str(exc))
         except Exception as exc:
