@@ -46,5 +46,17 @@
         "type": "list",
         "hint": "管理员可将不适合当前环境的表情包模板添加到此列表中禁用",
         "default": []
+    },
+    "enable_poke_response": {
+        "description": "戳一戳随机表情",
+        "type": "bool",
+        "hint": "收到目标为机器人的戳一戳时，随机发送一张可由戳者头像和昵称生成的表情；沿用用户生成冷却时间",
+        "default": false
+    },
+    "poke_response_any_target": {
+        "description": "任意戳一戳也响应",
+        "type": "bool",
+        "hint": "开启后，不再校验戳一戳的目标是否为机器人；群成员互相戳一戳也会触发随机表情",
+        "default": false
     }
 }

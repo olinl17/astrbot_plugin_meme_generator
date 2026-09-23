@@ -4,9 +4,11 @@
 
 # AstrBot 表情包生成插件
 
-**v2.3.2 · 关键词触发 · QQ 头像 · 单页模板目录**
+**v2.3.2-poke · 关键词触发 · QQ 头像 · 戳一戳随机表情**
 
 基于 [meme-generator-rs](https://github.com/MemeCrafters/meme-generator-rs) 的 AstrBot 表情包插件。
+
+戳一戳随机表情功能由 顾拾柒（olinl17）二次修改。
 
 </div>
 
@@ -145,12 +147,14 @@ fc-cache -fv
 | `enable_avatar_cache` | `bool` | `true` | 是否缓存 QQ 头像 |
 | `cache_expire_hours` | `int` | `24` | 头像缓存有效期，范围 1–168 小时 |
 | `disabled_templates` | `list` | `[]` | 被管理员禁用的模板列表 |
+| `enable_poke_response` | `bool` | `false` | 戳一戳机器人时随机回复一张表情，并沿用用户生成冷却时间 |
+| `poke_response_any_target` | `bool` | `false` | 开启后任意戳一戳都回复表情，包括群成员互相戳一戳 |
 
 ## 外部模板
 
-扩展额外表情资源请参考 meme-generator-rs Wiki：
+扩展额外表情资源请参考 meme-generator-rs Wiki。插件不会联网下载第三方扩展；请手动放置所需文件后重载插件：
 
 - [加载其他表情](https://github.com/MemeCrafters/meme-generator-rs/wiki/%E5%8A%A0%E8%BD%BD%E5%85%B6%E4%BB%96%E8%A1%A8%E6%83%85)
 - [配置文件说明](https://github.com/MemeCrafters/meme-generator-rs/wiki/%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6)
 
-动态库放入本插件数据目录的 `libraries/`，对应图片与字体放入 `resources/`。
+动态库放入本插件数据目录的 `libraries/`，对应图片与字体放入 `resources/`。例如 `meme-emoji`，请自行下载与系统架构匹配的动态库和 `resources/` 目录后放入上述位置。

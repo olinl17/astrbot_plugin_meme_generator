@@ -95,6 +95,10 @@ class MemeConfig:
         self.enable_avatar_cache: bool = self.config.get("enable_avatar_cache", True)
         self.cache_expire_hours: int = self.config.get("cache_expire_hours", 24)
         self.disabled_templates: list[str] = self.config.get("disabled_templates", [])
+        self.enable_poke_response: bool = self.config.get("enable_poke_response", False)
+        self.poke_response_any_target: bool = self.config.get(
+            "poke_response_any_target", False
+        )
 
     def _save_specific_config(self, key: str, value):
         """保存特定配置项的专用方法"""
@@ -303,6 +307,50 @@ class GenerationHandler:
                 f"表情包生成异常 - 用户: {user_id}, 消息: "
                 f"{message_str[:50]}{'...' if len(message_str) > 50 else ''}, 错误: {e}"
             )
+
+    async def handle_poke_response(self, event: AstrMessageEvent):
+        """Reply to a poke with one random meme when the feature is enabled."""
+        try:
+            image = await self.meme_manager.generate_random_meme(event)
+            if image:
+                yield event.chain_result([Comp.Image.fromBytes(image)])
+        except ResourceNotReadyError as exc:
+            yield event.plain_result(str(exc))
+        except Exception as exc:
+            logger.error("戳一戳随机表情生成失败: %s", exc, exc_info=True)
+
+
+def _is_poke_to_bot(event: AstrMessageEvent, allow_any_target: bool = False) -> bool:
+    """Return whether this event contains a poke aimed at the bot.
+
+    LLBot's aiocqhttp poke notices may omit ``self_id`` even though the event is
+    delivered to this bot. In that case, accept the Poke component rather than
+    silently discarding a valid poke response.
+    """
+    components = [
+        component for component in event.get_messages() if isinstance(component, Comp.Poke)
+    ]
+    if not components:
+        return False
+    if allow_any_target:
+        logger.info("收到戳一戳事件，已开启任意目标响应")
+        return True
+
+    self_id = str(event.get_self_id() or "").strip()
+    if not self_id:
+        logger.info("收到未携带机器人 ID 的戳一戳事件，按 LLBot 兼容模式响应")
+        return True
+
+    for component in components:
+        target_getter = getattr(component, "target_id", None)
+        target = target_getter() if callable(target_getter) else getattr(component, "qq", None)
+        if target is None:
+            logger.info("收到未携带目标 ID 的戳一戳事件，按兼容模式响应")
+            return True
+        if str(target).strip() == self_id:
+            return True
+        logger.info("忽略戳向其他用户的事件：目标=%s，机器人=%s", target, self_id)
+    return False
 
 
 class AdminHandlers:
@@ -589,6 +637,14 @@ class MemeGeneratorPlugin(Star):
         """
         表情包生成主流程处理器
         """
+        if _is_poke_to_bot(event, self.meme_config.poke_response_any_target):
+            if self.meme_config.is_plugin_enabled() and self.meme_config.enable_poke_response:
+                async for result in self.generation_handler.handle_poke_response(event):
+                    yield result
+            elif not self.meme_config.enable_poke_response:
+                logger.info("收到戳一戳事件，但 enable_poke_response 未开启")
+            return
+
         # 检查是否是管理员命令，如果是则不处理
         message_str = event.message_str.strip()
         admin_commands = [

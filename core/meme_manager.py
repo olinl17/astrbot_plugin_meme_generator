@@ -1,6 +1,7 @@
 """表情包管理器模块"""
 
 import asyncio
+import random
 import shutil
 from pathlib import Path
 from typing import Optional
@@ -274,3 +275,45 @@ class MemeManager:
         self.cooldown_manager.record_user_use(user_id)
 
         return image
+
+    async def generate_random_meme(self, event: AstrMessageEvent) -> Optional[bytes]:
+        """Generate a random meme whose parameters a poke can supply."""
+        user_id = event.get_sender_id()
+        if self.cooldown_manager.is_user_in_cooldown(user_id):
+            return None
+
+        block_message = self.resource_status.get_block_message(keyword_matched=True)
+        if block_message:
+            raise ResourceNotReadyError(block_message)
+
+        candidates = []
+        for meme in await self.template_manager.get_all_memes():
+            params = meme.info.params
+            keywords = list(meme.info.keywords)
+            if self.config.is_template_disabled(meme.key) or any(
+                self.config.is_template_disabled(keyword) for keyword in keywords
+            ):
+                continue
+            # ParamCollector can supply the sender and bot avatars plus one name.
+            if params.min_images <= 2 and params.min_texts <= 1:
+                candidates.append(meme)
+
+        random.SystemRandom().shuffle(candidates)
+        for meme in candidates:
+            try:
+                meme_images, texts, options = await self.param_collector.collect_params(
+                    event, meme.key, meme, keyword_prefix=""
+                )
+                image = await self.image_generator.generate_image(
+                    meme, meme_images, texts, options, self.config.generation_timeout
+                )
+                compressed = ImageUtils.compress_image(image)
+                if compressed:
+                    image = compressed
+                self.cooldown_manager.record_user_use(user_id)
+                return image
+            except Exception as exc:
+                logger.debug("戳一戳随机模板 %s 生成失败: %s", meme.key, exc)
+
+        logger.warning("没有可用于戳一戳的随机表情模板")
+        return None
