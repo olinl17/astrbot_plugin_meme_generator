@@ -308,8 +308,8 @@ class GenerationHandler:
                 f"{message_str[:50]}{'...' if len(message_str) > 50 else ''}, 错误: {e}"
             )
 
-    async def handle_poke_response(self, event: AstrMessageEvent):
-        """Reply to a poke with one random meme when the feature is enabled."""
+    async def handle_random_meme(self, event: AstrMessageEvent):
+        """Send a random meme together with the command that recreates it."""
         try:
             generated = await self.meme_manager.generate_random_meme(event)
             if generated:
@@ -323,7 +323,7 @@ class GenerationHandler:
         except ResourceNotReadyError as exc:
             yield event.plain_result(str(exc))
         except Exception as exc:
-            logger.error("戳一戳随机表情生成失败: %s", exc, exc_info=True)
+            logger.error("随机表情生成失败: %s", exc, exc_info=True)
 
 
 def _is_poke_to_bot(event: AstrMessageEvent, allow_any_target: bool = False) -> bool:
@@ -524,6 +524,17 @@ class MemeGeneratorPlugin(Star):
             event, "meme_list.html", template_data, fallback_text
         )
 
+    @filter.command("随机表情")
+    async def random_meme(self, event: AstrMessageEvent):
+        """随机抽取一张可用表情，并显示其可复用的指令。"""
+        if not self.meme_config.is_plugin_enabled():
+            if PermissionUtils.is_bot_admin(event):
+                yield event.plain_result(PermissionUtils.get_plugin_disabled_message())
+            return
+
+        async for result in self.generation_handler.handle_random_meme(event):
+            yield result
+
     @filter.command("表情信息", alias={"meme信息"})
     async def template_info(
             self, event: AstrMessageEvent, keyword: str | int | None = None
@@ -645,7 +656,7 @@ class MemeGeneratorPlugin(Star):
         """
         if _is_poke_to_bot(event, self.meme_config.poke_response_any_target):
             if self.meme_config.is_plugin_enabled() and self.meme_config.enable_poke_response:
-                async for result in self.generation_handler.handle_poke_response(event):
+                async for result in self.generation_handler.handle_random_meme(event):
                     yield result
             elif not self.meme_config.enable_poke_response:
                 logger.info("收到戳一戳事件，但 enable_poke_response 未开启")
@@ -659,6 +670,7 @@ class MemeGeneratorPlugin(Star):
             "表情状态", "meme状态",
             "表情帮助", "meme帮助",
             "表情列表", "meme列表",
+            "随机表情",
             "禁用列表"
         ]
 
